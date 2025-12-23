@@ -2,126 +2,163 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
-  />
-  <title>打开小红书发布</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>一键打开小红书发布</title>
   <style>
     body {
-      margin: 0;
-      padding: 0;
-      background: #f6f7f9;
       font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue",
         Helvetica, Arial, sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 24px;
       color: #333;
     }
 
-    .wrapper {
-      max-width: 520px;
+    .container {
+      max-width: 420px;
       margin: 0 auto;
-      padding: 24px 16px;
-    }
-
-    .card {
       background: #fff;
-      border-radius: 14px;
-      padding: 24px 18px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
     }
 
     h1 {
       font-size: 20px;
-      margin: 0 0 12px;
+      margin-bottom: 12px;
     }
 
-    p {
-      font-size: 14px;
-      line-height: 1.6;
-      color: #555;
-      margin: 0 0 12px;
-    }
-
-    .btn {
+    textarea {
       width: 100%;
-      height: 48px;
-      margin-top: 20px;
+      min-height: 160px;
+      padding: 12px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      resize: none;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      font-size: 16px;
       border: none;
-      border-radius: 24px;
+      border-radius: 10px;
       background: #ff2442;
       color: #fff;
-      font-size: 16px;
-      font-weight: 500;
+      cursor: pointer;
     }
 
-    .hint {
+    button:active {
+      opacity: 0.85;
+    }
+
+    .tips {
       margin-top: 16px;
-      font-size: 12px;
-      color: #999;
-      text-align: center;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.6;
     }
 
-    .copied {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #28a745;
-      text-align: center;
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 60px;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 20px;
+      font-size: 14px;
       display: none;
+      z-index: 999;
     }
   </style>
 </head>
-
 <body>
-  <div class="wrapper">
-    <div class="card">
-      <h1>一键打开小红书</h1>
+  <div class="container">
+    <h1>一键打开小红书发布</h1>
 
-      <p>
-        我们已经为你准备好发布文案：<br />
-        打开小红书后，点击底部「＋」，<br />
-        长按输入框直接粘贴即可发布。
-      </p>
+    <textarea id="content">
+今日分享：
+#好物推荐 #日常记录
 
-      <button id="openBtn" class="btn">
-        打开小红书 App
-      </button>
+这是从我们网站生成的内容，
+已经为你准备好啦～
+    </textarea>
 
-      <div id="copiedTip" class="copied">
-        发布文案已复制到剪贴板
-      </div>
+    <button id="openBtn">打开小红书并发布</button>
 
-      <div class="hint">
-        若未成功打开，请确认已安装小红书
-      </div>
+    <div class="tips">
+      使用说明：
+      <br />1. 点击按钮后将自动复制文案
+      <br />2. 系统会唤起小红书 App
+      <br />3. 点击「＋」 → 长按输入框 → 粘贴 → 发布
     </div>
   </div>
 
+  <div class="toast" id="toast">内容已复制，正在打开小红书…</div>
+
   <script>
-    // ====== 你要复制到剪贴板的发布文案 ======
-    const publishText = `
-这是我在这里的打卡分享～
-📍 地点：XXXX
-📸 记得拍照上传
-#打卡 #生活记录
-`.trim();
+    function showToast(text) {
+      const toast = document.getElementById("toast");
+      toast.innerText = text;
+      toast.style.display = "block";
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 2000);
+    }
 
-    const openBtn = document.getElementById("openBtn");
-    const copiedTip = document.getElementById("copiedTip");
+    function getOS() {
+      const ua = navigator.userAgent.toLowerCase();
+      if (/iphone|ipad|ipod/.test(ua)) return "ios";
+      if (/android/.test(ua)) return "android";
+      return "other";
+    }
 
-    openBtn.addEventListener("click", async () => {
-      // 1️⃣ 复制文案（必须在用户点击事件中）
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(publishText);
-          copiedTip.style.display = "block";
-        }
-      } catch (err) {
-        console.log("Clipboard write failed:", err);
+    async function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
       }
+    }
 
-      // 2️⃣ 唤起小红书 App
-      window.location.href = "xhsdiscover://";
+    function openXHS() {
+      const os = getOS();
+
+      if (os === "ios") {
+        window.location.href = "xhsdiscover://";
+      } else if (os === "android") {
+        window.location.href =
+          "intent://discover#Intent;scheme=xhsdiscover;package=com.xingin.xhs;end";
+      } else {
+        alert("请在手机上打开该页面");
+      }
+    }
+
+    document.getElementById("openBtn").addEventListener("click", async () => {
+      const content = document.getElementById("content").value;
+
+      try {
+        await copyText(content);
+        showToast("内容已复制，正在打开小红书…");
+
+        setTimeout(() => {
+          openXHS();
+        }, 300);
+      } catch (e) {
+        alert("复制失败，请手动复制内容后打开小红书");
+      }
     });
   </script>
 </body>
