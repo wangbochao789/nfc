@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>打开小红书发布</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial;
+      background: #f7f7f7;
+      color: #333;
+    }
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #666;
+    }
+    .btn {
+      margin-top: 24px;
+      width: 100%;
+      height: 48px;
+      border: none;
+      border-radius: 24px;
+      font-size: 16px;
+      font-weight: 500;
+      background: #ff2442;
+      color: #fff;
+    }
+    .tip {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>一键打开小红书</h1>
+
+      <p>
+        1. 点击下方按钮打开小红书 App<br/>
+        2. 点击底部「＋」开始发布<br/>
+        3. 粘贴文案并选择图片完成发布
+      </p>
+
+      <button id="openXhsBtn" class="btn">
+        打开小红书 App
+      </button>
+
+      <div class="tip">
+        若未自动打开，请确认已安装小红书
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 预设发布文案（可替换）
+    const presetText = '这是我为你准备好的发布文案，可直接粘贴使用～';
+
+    function isIOS() {
+      return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+
+    document.getElementById('openXhsBtn').addEventListener('click', function () {
+      // 尝试写入剪贴板（iOS 需要用户手势）
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(presetText).catch(() => {});
+      }
+
+      // 唤起小红书 App
+      window.location.href = 'xhsdiscover://';
+    });
+  </script>
+</body>
+</html>
