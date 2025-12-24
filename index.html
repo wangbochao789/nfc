@@ -113,8 +113,12 @@
 
     function getOS() {
       const ua = navigator.userAgent.toLowerCase();
+      // iOS检测
       if (/iphone|ipad|ipod/.test(ua)) return "ios";
-      if (/android/.test(ua)) return "android";
+      // Android检测 - 更宽松的匹配规则
+      if (/android|adr|linux/.test(ua)) return "android";
+      // 如果都不匹配，根据平台判断
+      if (navigator.platform && /android/i.test(navigator.platform)) return "android";
       return "other";
     }
 
@@ -135,24 +139,56 @@
 
     function openXHS() {
       const os = getOS();
+      const ua = navigator.userAgent;
 
       if (os === "ios") {
         window.location.href = "xhsdiscover://";
       } else if (os === "android") {
-        // Android上使用Intent scheme唤醒小红书
-        // 注意：必须在用户交互事件中直接调用，不能有延迟
-        const intentUrl = "intent://discover#Intent;scheme=xhsdiscover;package=com.xingin.xhs;S.browser_fallback_url=https://play.google.com/store/apps/details?id=com.xingin.xhs;end";
+        // Android上尝试多种方式唤醒小红书
+        const fallbackUrl = "https://play.google.com/store/apps/details?id=com.xingin.xhs";
         
-        // 尝试直接跳转
-        window.location.href = intentUrl;
+        // 方式1: 使用Intent scheme（推荐）
+        const intentUrl = "intent://discover#Intent;scheme=xhsdiscover;package=com.xingin.xhs;S.browser_fallback_url=" + encodeURIComponent(fallbackUrl) + ";end";
+        
+        // 方式2: 直接使用scheme（备用）
+        const directScheme = "xhsdiscover://discover";
+        
+        try {
+          // 优先尝试Intent方式
+          window.location.href = intentUrl;
+          
+          // 如果3秒后还在当前页面，尝试直接scheme
+          setTimeout(() => {
+            try {
+              window.location.href = directScheme;
+            } catch (e) {
+              console.error("打开失败:", e);
+            }
+          }, 1000);
+        } catch (e) {
+          // 如果Intent失败，尝试直接scheme
+          try {
+            window.location.href = directScheme;
+          } catch (e2) {
+            console.error("打开失败:", e2);
+            alert("无法打开小红书，请确保已安装小红书App");
+          }
+        }
       } else {
-        alert("请在手机上打开该页面");
+        // 显示调试信息
+        alert("检测到的系统: " + os + "\nUser-Agent: " + ua.substring(0, 100) + "\n\n请在Android或iOS手机上打开该页面");
       }
     }
 
     document.getElementById("openBtn").addEventListener("click", async (e) => {
       const content = document.getElementById("content").value;
       const os = getOS();
+      const ua = navigator.userAgent;
+
+      // 调试信息（可在控制台查看）
+      console.log("检测到的系统:", os);
+      console.log("User-Agent:", ua);
+      console.log("Platform:", navigator.platform);
 
       try {
         // 先尝试复制内容（不等待完成，因为Android需要立即打开）
@@ -165,6 +201,7 @@
         // Android上必须在用户交互事件中直接触发，不能有任何延迟
         // 所以立即调用openXHS，不等待复制完成
         if (os === "android") {
+          // 立即触发，不延迟
           openXHS();
         } else if (os === "ios") {
           // iOS上可以稍等确保复制完成
@@ -172,10 +209,13 @@
             openXHS();
           }, 100);
         } else {
+          // 其他系统，显示调试信息
+          console.warn("未识别的系统类型，尝试通用方式打开");
           openXHS();
         }
       } catch (e) {
-        alert("操作失败，请手动复制内容后打开小红书");
+        console.error("操作失败:", e);
+        alert("操作失败: " + e.message + "\n\n检测到的系统: " + os + "\n请手动复制内容后打开小红书");
       }
     });
   </script>
