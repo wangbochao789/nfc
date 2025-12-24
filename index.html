@@ -2,15 +2,17 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+  />
   <title>一键打开小红书发布</title>
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue",
-        Helvetica, Arial, sans-serif;
-      background: #f7f7f7;
       margin: 0;
       padding: 24px;
+      background: #f7f7f7;
+      font-family: -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
       color: #333;
     }
 
@@ -93,13 +95,13 @@
 
     <div class="tips">
       使用说明：
-      <br />1. 点击按钮后将自动复制文案
-      <br />2. 系统会唤起小红书 App
-      <br />3. 点击「＋」 → 长按输入框 → 粘贴 → 发布
+      <br />1. 已自动复制发布文案
+      <br />2. 打开小红书 App
+      <br />3. 点击「＋」→ 粘贴 → 发布
     </div>
   </div>
 
-  <div class="toast" id="toast">内容已复制，正在打开小红书…</div>
+  <div class="toast" id="toast"></div>
 
   <script>
     function showToast(text) {
@@ -113,110 +115,60 @@
 
     function getOS() {
       const ua = navigator.userAgent.toLowerCase();
-      // iOS检测
       if (/iphone|ipad|ipod/.test(ua)) return "ios";
-      // Android检测 - 更宽松的匹配规则
-      if (/android|adr|linux/.test(ua)) return "android";
-      // 如果都不匹配，根据平台判断
-      if (navigator.platform && /android/i.test(navigator.platform)) return "android";
+      if (/android/.test(ua)) return "android";
       return "other";
     }
 
-    async function copyText(text) {
+    function copyText(text) {
       if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-      } else {
+        return navigator.clipboard.writeText(text);
+      }
+      return new Promise((resolve, reject) => {
         const textarea = document.createElement("textarea");
         textarea.value = text;
         textarea.style.position = "fixed";
         textarea.style.opacity = "0";
         document.body.appendChild(textarea);
         textarea.select();
-        document.execCommand("copy");
+        const success = document.execCommand("copy");
         document.body.removeChild(textarea);
-      }
+        success ? resolve() : reject();
+      });
     }
 
     function openXHS() {
       const os = getOS();
-      const ua = navigator.userAgent;
 
       if (os === "ios") {
+        // iOS：成功率高
         window.location.href = "xhsdiscover://";
-      } else if (os === "android") {
-        // Android上尝试多种方式唤醒小红书
-        const fallbackUrl = "https://play.google.com/store/apps/details?id=com.xingin.xhs";
-        
-        // 方式1: 使用Intent scheme（推荐）
-        const intentUrl = "intent://discover#Intent;scheme=xhsdiscover;package=com.xingin.xhs;S.browser_fallback_url=" + encodeURIComponent(fallbackUrl) + ";end";
-        
-        // 方式2: 直接使用scheme（备用）
-        const directScheme = "xhsdiscover://discover";
-        
-        try {
-          // 优先尝试Intent方式
-          window.location.href = intentUrl;
-          
-          // 如果3秒后还在当前页面，尝试直接scheme
-          setTimeout(() => {
-            try {
-              window.location.href = directScheme;
-            } catch (e) {
-              console.error("打开失败:", e);
-            }
-          }, 1000);
-        } catch (e) {
-          // 如果Intent失败，尝试直接scheme
-          try {
-            window.location.href = directScheme;
-          } catch (e2) {
-            console.error("打开失败:", e2);
-            alert("无法打开小红书，请确保已安装小红书App");
-          }
-        }
-      } else {
-        // 显示调试信息
-        alert("检测到的系统: " + os + "\nUser-Agent: " + ua.substring(0, 100) + "\n\n请在Android或iOS手机上打开该页面");
+        return;
       }
+
+      if (os === "android") {
+        // Android：官方允许的唯一稳定方式
+        window.location.href =
+          "https://play.google.com/store/apps/details?id=com.xingin.xhs";
+        return;
+      }
+
+      alert("请在手机端打开该页面");
     }
 
-    document.getElementById("openBtn").addEventListener("click", async (e) => {
+    document.getElementById("openBtn").addEventListener("click", () => {
       const content = document.getElementById("content").value;
-      const os = getOS();
-      const ua = navigator.userAgent;
 
-      // 调试信息（可在控制台查看）
-      console.log("检测到的系统:", os);
-      console.log("User-Agent:", ua);
-      console.log("Platform:", navigator.platform);
-
-      try {
-        // 先尝试复制内容（不等待完成，因为Android需要立即打开）
-        copyText(content).then(() => {
-          showToast("内容已复制，正在打开小红书…");
-        }).catch(() => {
+      copyText(content)
+        .then(() => {
+          showToast("文案已复制，正在打开小红书…");
+        })
+        .catch(() => {
           showToast("正在打开小红书…");
         });
 
-        // Android上必须在用户交互事件中直接触发，不能有任何延迟
-        // 所以立即调用openXHS，不等待复制完成
-        if (os === "android") {
-          // 立即触发，不延迟
-          openXHS();
-        } else if (os === "ios") {
-          // iOS上可以稍等确保复制完成
-          setTimeout(() => {
-            openXHS();
-          }, 100);
-        } else {
-          // 其他系统，显示调试信息
-          console.warn("未识别的系统类型，尝试通用方式打开");
-          openXHS();
-        }
-      } catch (e) {
-        console.error("操作失败:", e);
-        alert("操作失败: " + e.message + "\n\n检测到的系统: " + os + "\n请手动复制内容后打开小红书");
-      }
+      // 必须同步触发
+      openXHS();
     });
   </script>
 </body>
