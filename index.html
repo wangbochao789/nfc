@@ -139,25 +139,43 @@
       if (os === "ios") {
         window.location.href = "xhsdiscover://";
       } else if (os === "android") {
-        window.location.href =
-          "intent://discover#Intent;scheme=xhsdiscover;package=com.xingin.xhs;end";
+        // Android上使用Intent scheme唤醒小红书
+        // 注意：必须在用户交互事件中直接调用，不能有延迟
+        const intentUrl = "intent://discover#Intent;scheme=xhsdiscover;package=com.xingin.xhs;S.browser_fallback_url=https://play.google.com/store/apps/details?id=com.xingin.xhs;end";
+        
+        // 尝试直接跳转
+        window.location.href = intentUrl;
       } else {
         alert("请在手机上打开该页面");
       }
     }
 
-    document.getElementById("openBtn").addEventListener("click", async () => {
+    document.getElementById("openBtn").addEventListener("click", async (e) => {
       const content = document.getElementById("content").value;
+      const os = getOS();
 
       try {
-        await copyText(content);
-        showToast("内容已复制，正在打开小红书…");
+        // 先尝试复制内容（不等待完成，因为Android需要立即打开）
+        copyText(content).then(() => {
+          showToast("内容已复制，正在打开小红书…");
+        }).catch(() => {
+          showToast("正在打开小红书…");
+        });
 
-        setTimeout(() => {
+        // Android上必须在用户交互事件中直接触发，不能有任何延迟
+        // 所以立即调用openXHS，不等待复制完成
+        if (os === "android") {
           openXHS();
-        }, 300);
+        } else if (os === "ios") {
+          // iOS上可以稍等确保复制完成
+          setTimeout(() => {
+            openXHS();
+          }, 100);
+        } else {
+          openXHS();
+        }
       } catch (e) {
-        alert("复制失败，请手动复制内容后打开小红书");
+        alert("操作失败，请手动复制内容后打开小红书");
       }
     });
   </script>
